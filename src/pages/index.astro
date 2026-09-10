@@ -4,11 +4,13 @@ import GameCard from '../components/GameCard.astro';
 import PageHero from '../components/PageHero.astro';
 import EmptyState from '../components/EmptyState.astro';
 import { getDatabase } from '../lib/db';
-import { getAllGames } from '../lib/games';
+import { getAllCategories, getAllGames, getAllPublishers } from '../lib/games';
 
 export const prerender = true;
 
 const games = await getAllGames(getDatabase());
+const categories = await getAllCategories(getDatabase());
+const publishers = await getAllPublishers(getDatabase());
 ---
 
 <Layout title="Tailspin Toys - Crowdfunding your new favorite game!">
@@ -19,7 +21,56 @@ const games = await getAllGames(getDatabase());
     />
 
     <div>
-      <h2 class="text-2xl font-medium mb-6 text-slate-100">Featured Games</h2>
+      <div class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-end sm:justify-between">
+        <h2 class="text-2xl font-medium text-slate-100">Featured Games</h2>
+        <p id="game-result-count" class="text-sm text-slate-400" aria-live="polite">
+          Showing {games.length} {games.length === 1 ? 'game' : 'games'}
+        </p>
+      </div>
+
+      {games.length > 0 && (
+        <form
+          class="mb-8 grid grid-cols-1 gap-4 rounded-xl border border-slate-700 bg-slate-800/50 p-5 sm:grid-cols-2"
+          data-testid="game-filters"
+          aria-label="Filter games"
+        >
+          <div>
+            <label for="category-filter" class="mb-2 block text-sm font-medium text-slate-200">
+              Categories
+            </label>
+            <select
+              id="category-filter"
+              name="categories"
+              multiple
+              size={Math.min(Math.max(categories.length, 3), 5)}
+              class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              data-testid="category-filter"
+            >
+              {categories.map((category) => (
+                <option value={category.id}>{category.name}</option>
+              ))}
+            </select>
+            <p class="mt-2 text-xs text-slate-400">Hold Ctrl or Command to select multiple.</p>
+          </div>
+
+          <div>
+            <label for="publisher-filter" class="mb-2 block text-sm font-medium text-slate-200">
+              Publisher
+            </label>
+            <select
+              id="publisher-filter"
+              name="publisher"
+              class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              data-testid="publisher-filter"
+            >
+              <option value="">All publishers</option>
+              {publishers.map((publisher) => (
+                <option value={publisher.id}>{publisher.name}</option>
+              ))}
+            </select>
+          </div>
+        </form>
+      )}
 
       {games.length === 0 ? (
         <EmptyState text="No games available at the moment." />
@@ -28,6 +79,47 @@ const games = await getAllGames(getDatabase());
           {games.map((game) => <GameCard game={game} />)}
         </div>
       )}
+      {games.length > 0 && (
+        <div class="hidden mt-6" data-testid="filtered-empty-state" role="status">
+          <EmptyState text="No games match the selected filters." />
+        </div>
+      )}
     </div>
   </div>
 </Layout>
+
+<script>
+  const categoryFilter = document.querySelector<HTMLSelectElement>('#category-filter');
+  const publisherFilter = document.querySelector<HTMLSelectElement>('#publisher-filter');
+  const gameCards = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="game-card"]'));
+  const resultCount = document.querySelector<HTMLElement>('#game-result-count');
+  const filteredEmptyState = document.querySelector<HTMLElement>('[data-testid="filtered-empty-state"]');
+
+  const updateGameResults = (): void => {
+    const selectedCategories = new Set(
+      Array.from(categoryFilter?.selectedOptions ?? []).map((option) => option.value),
+    );
+    const selectedPublisher = publisherFilter?.value ?? '';
+    let visibleCount = 0;
+
+    gameCards.forEach((card) => {
+      const categoryMatches =
+        selectedCategories.size === 0 || selectedCategories.has(card.dataset.categoryId ?? '');
+      const publisherMatches =
+        selectedPublisher === '' || selectedPublisher === card.dataset.publisherId;
+      const isVisible = categoryMatches && publisherMatches;
+      card.hidden = !isVisible;
+      if (isVisible) visibleCount++;
+    });
+
+    if (resultCount) {
+      resultCount.textContent = `Showing ${visibleCount} ${visibleCount === 1 ? 'game' : 'games'}`;
+    }
+    if (filteredEmptyState) {
+      filteredEmptyState.classList.toggle('hidden', visibleCount !== 0);
+    }
+  };
+
+  categoryFilter?.addEventListener('change', updateGameResults);
+  publisherFilter?.addEventListener('change', updateGameResults);
+</script>

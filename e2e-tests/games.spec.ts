@@ -1,6 +1,32 @@
 import { test, expect, type Response } from '@playwright/test';
 
 test.describe('Game Listing and Navigation', () => {
+  test('should filter games by category and publisher', async ({ page }) => {
+    await page.goto('/');
+    const gameCards = page.locator('[data-testid="game-card"]:visible');
+    await expect(gameCards).toHaveCount(21);
+
+    await test.step('Filter by category', async () => {
+      await page.getByTestId('category-filter').selectOption({ label: 'Strategy' });
+      await expect(gameCards).toHaveCount(4);
+      await expect(page.getByTestId('game-result-count')).toHaveText('Showing 4 games');
+    });
+
+    await test.step('Combine category and publisher filters', async () => {
+      await page.getByTestId('publisher-filter').selectOption({ label: 'GitHub Games' });
+      await expect(gameCards).toHaveCount(1);
+      await expect(gameCards.first()).toHaveAttribute('data-game-title', 'Server Siege');
+      await expect(page.getByTestId('game-result-count')).toHaveText('Showing 1 game');
+    });
+
+    await test.step('Show an accessible empty state for unmatched filters', async () => {
+      await page.getByTestId('category-filter').selectOption({ label: 'Puzzle' });
+      await expect(gameCards).toHaveCount(0);
+      await expect(page.getByTestId('filtered-empty-state')).toBeVisible();
+      await expect(page.getByTestId('game-result-count')).toHaveText('Showing 0 games');
+    });
+  });
+
   test('should display games with titles on index page', async ({ page }) => {
     await test.step('Navigate to homepage', async () => {
       await page.goto('/');
