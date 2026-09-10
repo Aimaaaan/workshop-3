@@ -11,6 +11,8 @@ Astro handles everything in the UI: pages, layouts, components, routing, and con
 
 ### Component Structure
 
+Reusable components and layouts must declare a typed `Props` interface in frontmatter. Treat that interface as the component's public contract: use descriptive prop names and document non-obvious purpose, allowed values, or rendering constraints with TSDoc. Keep comments focused on intent rather than repeating the markup.
+
 ```astro
 ---
 // Frontmatter: runs at build time (static output)
@@ -20,6 +22,7 @@ import { getDatabase } from '../lib/db';
 import { getAllGames } from '../lib/games';
 
 interface Props {
+  /** The page title rendered in the document head. */
   title: string;
 }
 
@@ -44,6 +47,7 @@ const games = await getAllGames(getDatabase());
 ```astro
 ---
 interface Props {
+  /** The page title rendered in the document head. */
   title: string;
 }
 const { title } = Astro.props;
