@@ -35,12 +35,16 @@ This is a crowdfunding platform for games with a developer theme. The applicatio
 ### Code formatting requirements
 
 - Use TypeScript with explicit types for function parameters and return values, especially in the data layer (`db/`, `src/lib/`)
+- Follow [`coding-standards.instructions.md`](instructions/coding-standards.instructions.md): comment intent and decisions rather than mechanics, keep comments current, and document exported data-layer functions with TSDoc/JSDoc.
+- Reusable Astro components must define and document a typed `Props` interface.
+- Use the enforced TypeScript style: single quotes, semicolons, trailing commas in multiline structures, spaces inside object/import braces, and `import type` for type-only imports.
 - Frontend code (TypeScript, Astro) must pass ESLint checks (`npm run lint`)
 
 ### Data Layer Patterns (Drizzle + Node SQLite)
 
 - Define tables in `db/schema.ts`; manage schema changes with drizzle-kit migrations - see `drizzle.instructions.md`
 - Keep data-access helpers in `src/lib/` with an **injectable `db`** argument so they're testable
+- Every exported function in `db/` and `src/lib/` must have TSDoc/JSDoc describing its purpose, parameters, injectable `db` argument where applicable, and return value.
 - Keep CSV/seed logic as pure functions in `db/transforms.ts`
 - Seed-derived values must be deterministic (no `Math.random`) so static builds are reproducible
 
